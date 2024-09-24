@@ -388,6 +388,152 @@ void ch36xMemWrite(enum CH36xMemModel MemModel, ULONG addr,  ULONG len, unsigned
     }
 }
 
+// 将2个单字节组合成为16位数
+//   0xaa 0xbb --> 0xaabb
+#define   halfWord16From2Bytes(h,l)           ((((unsigned short)(h)) << 8) | (unsigned char)(l))
+static unsigned short vid, did, rid, svid, sid;
+static char isReadEERPROM = 0;
+#define EEPROM_INFO_SIZE 0x20
+void ch36xEEPRomRead(void) // 读EEPROM
+{
+    UCHAR i, sByte[8], data[32];
+
+    for(i = 0; i < EEPROM_INFO_SIZE; i++)
+    {
+        if(!CH367mReadI2C(mIndex, 0x50, i, &data[i]))
+        {
+            //MessageBox(mSaveDialogI2c, "写EEPROM失败,可能EEPROM损坏或没有连接", mCaptionInform, MB_OK);
+            //EndDialog(mSaveDialogI2c,2);
+            printf("Read EEPROM Failed!\n");
+            return;
+        }
+    }
+    isReadEERPROM = 1;
+    // VID(厂商标识 : Vendor ID)
+    vid  = halfWord16From2Bytes(data[5], data[4]);
+    // DID(设备标识: Device ID)
+    did  = halfWord16From2Bytes(data[7], data[6]);
+    // RID(芯片版本 : Revision ID)
+    rid  = halfWord16From2Bytes(0x00, data[8]); // 只有一个字节
+    // SVID(子系统厂商标识 : Subsystem Vendor ID)
+    svid = halfWord16From2Bytes(data[13], data[12]);
+    // SID(子系统标识 : Subsystem ID)
+    sid  = halfWord16From2Bytes(data[15], data[14]);
+
+    printf("VID  = %04x\n", vid);
+    printf("DID  = %04x\n", did);
+    printf("RID  = %04x\n", rid);
+    printf("SVID = %04x\n", svid);
+    printf("SID  = %04x\n", sid);
+
+    //sprintf(sByte, "%02X%02X\x0", data[5], data[4]);
+    //SetDlgItemText(mSaveDialogI2c, IDC_VID, sByte); // 输出VID
+    //sprintf(sByte, "%02X%02X\x0", data[7], data[6]);
+    //SetDlgItemText(mSaveDialogI2c, IDC_DID, sByte); // 输出DID
+    //sprintf(sByte, "%02X\x0", data[8]);
+    //SetDlgItemText(mSaveDialogI2c, IDC_RID, sByte); // 输出RID
+    //sprintf(sByte, "%02X%02X\x0", data[13], data[12]);
+    //SetDlgItemText(mSaveDialogI2c, IDC_SVID, sByte); // 输出SVID
+    //sprintf(sByte, "%02X%02X\x0", data[15], data[14]);
+    //SetDlgItemText(mSaveDialogI2c, IDC_SID, sByte); // 输出SID
+    printf("Read EEPROM OK\n");
+}
+
+void ch36xEEPRomWrite(void) //修改VID,DID...
+{
+    //mVAR_TYPE mVarType;
+    UCHAR i, data[8], buffer[32];
+    //UINT Len = 0;
+    //USHORT Value = 0;
+
+    if (isReadEERPROM == 0)
+    {
+        printf("Read Frist\n");
+        ch36xEEPRomRead();
+    }
+
+    buffer[0] = 0x78;
+    buffer[1] = 0x00;
+    buffer[2] = 0x00;
+    buffer[3] = 0x00;
+    //Len = GetDlgItemText(mSaveDialogI2c, IDC_VID, data, 5);
+    //if(!mCheckInput(data))
+    //{
+    //  MessageBox(NULL,"您输入的字符有误，请输入0~9,a~f,A~F之间的十六进制数!","提示",MB_OK|MB_ICONERROR);
+    //  return;
+    //}
+    //mVarType = mCharToVar(data, Len, 0); // 取VID
+    //Value = mVarType.sVar;
+    buffer[4] = vid & 0xFF;
+    buffer[5] = vid >> 8;
+    //Len = GetDlgItemText(mSaveDialogI2c, IDC_DID, data, 5);
+    //if(!mCheckInput(data))
+    //{
+    //  MessageBox(NULL,"您输入的字符有误，请输入0~9,a~f,A~F之间的十六进制数!","提示",MB_OK|MB_ICONERROR);
+    //  return;
+    //}
+    //mVarType = mCharToVar(data, Len, 0); // 取DID
+    //Value = mVarType.sVar;
+    buffer[6] = did & 0xFF;
+    buffer[7] = did >> 8;
+    //Len = GetDlgItemText(mSaveDialogI2c, IDC_RID, data, 3);
+    //if(!mCheckInput(data))
+    //{
+    //  MessageBox(NULL,"您输入的字符有误，请输入0~9,a~f,A~F之间的十六进制数!","提示",MB_OK|MB_ICONERROR);
+    //  return;
+    //}
+    //mVarType = mCharToVar(data, Len, 3); // 取RID
+    buffer[8]  = rid; //mVarType.cVar;
+    buffer[9]  = 0x00;
+    buffer[10] = 0x00;
+    buffer[11] = 0x10;
+    //Len = GetDlgItemText(mSaveDialogI2c, IDC_SVID, data, 5);
+    //if(!mCheckInput(data))
+    //{
+    //  MessageBox(NULL,"您输入的字符有误，请输入0~9,a~f,A~F之间的十六进制数!","提示",MB_OK|MB_ICONERROR);
+    //  return;
+    //}
+    //mVarType = mCharToVar(data, Len, 0); // 取SVID
+    //Value = mVarType.sVar;
+    buffer[12] = svid & 0xFF;
+    buffer[13] = svid >> 8;
+    //Len = GetDlgItemText(mSaveDialogI2c, IDC_SID, data, 5);
+    //if(!mCheckInput(data))
+    //{
+    //  MessageBox(NULL,"您输入的字符有误，请输入0~9,a~f,A~F之间的十六进制数!","提示",MB_OK|MB_ICONERROR);
+    //  return;
+    //}
+    //mVarType = mCharToVar(data, Len, 0); // 取SID
+    //Value = mVarType.sVar;
+    buffer[14] = sid & 0xFF;
+    buffer[15] = sid >> 8;
+    for(i = 0x10; i < EEPROM_INFO_SIZE; i++)
+    {
+        buffer[i] = 0x00;
+    }
+
+    for(i = 0; i < EEPROM_INFO_SIZE; i++)
+    {
+        printf("Write EEPROM at [%02d] : %02x\n", i, buffer[i]);
+#if 0
+        if(CH367mWriteI2C(mIndex, 0x50, i, buffer[i]))
+        {
+            Sleep(20); // 务必要加延时
+        }
+        else
+        {
+            //MessageBox(mSaveDialogI2c, "写EEPROM失败,可能EEPROM损坏或没有连接", mCaptionInform, MB_OK);
+            printf("Write EEPROM Failed!\n");
+            return;
+        }
+#else
+        printf("!! DEBUG : Skip Real-write\n");
+#endif
+    }
+    //MessageBox(mSaveDialogI2c, "写EEPROM完成", mCaptionInform, MB_OK);
+    printf("Write EEPROM OK\n");
+}
+
 int main(int argc, char *argv[])
 {
     int index = 0;
@@ -399,7 +545,7 @@ int main(int argc, char *argv[])
     ch36xMemConfig32BitRW(true);
 
     Sleep(100);
-
+#if 0
     addr = 0x4;
     len = 4;
     ch36xMemRead(CH36xMemModel_DWORD/*CH36xMemModel_BYTE*/,
@@ -426,6 +572,11 @@ int main(int argc, char *argv[])
 
         printf("%x\n", buff[i]);
     }
+#endif
+
+    ch36xEEPRomRead();
+    ch36xEEPRomWrite();
+
     ch36xCloseDevice(index);
 
 
