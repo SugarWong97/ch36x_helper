@@ -114,10 +114,10 @@ static void default_error_parse_handler(cmdp_error_params_st *params)
 
 static void default_doc_gen_options_handler(FILE *fp, cmdp_option_st *options)
 {
-	int i;
-	int pos;
-	char *alias;
-	 long remain_prefix;
+    int i;
+    int pos;
+    char *alias;
+     long remain_prefix;
     /*
     \s\s[command]\s{29-2-len}doc\n
         -h, --help                 Give this help list
@@ -213,9 +213,9 @@ static void default_doc_gen_options_handler(FILE *fp, cmdp_option_st *options)
 
 static void default_doc_gen_command_handler(FILE *fp, cmdp_command_st *command)
 {
-	int i;
-	int pos;
-	long remain_prefix;
+    int i;
+    int pos;
+    long remain_prefix;
     if (command->doc)
     {
         fputs(command->doc, fp);
@@ -286,10 +286,10 @@ static void default_doc_gen_command_handler(FILE *fp, cmdp_command_st *command)
 #define snprintf _snprintf
 static void cmdp_fprint_all_documents_recursive(FILE *fp, cmdp_command_st *cmdp, char *command_name, bool colored)
 {
-	int count;
-	int i;
-	char *cmd_name;
-	size_t cmd_name_len;
+    int count;
+    int i;
+    char *cmd_name;
+    size_t cmd_name_len;
 #define GREEN(STRING) "\x1b[32m" STRING "\x1b[0m"
 #define CYAN(STRING)  "\x1b[36m" STRING "\x1b[0m"
 
@@ -328,7 +328,7 @@ static void cmdp_fprint_all_documents_recursive(FILE *fp, cmdp_command_st *cmdp,
 static cmdp_option_st *find_option(int short_option, char *long_option, cmdp_command_st *cmdp)
 {
     int count = nonzero_countof(cmdp->options, sizeof(cmdp_option_st));
-	int i;
+    int i;
     for (i = 0; i < count; i++)
     {
         cmdp_option_st *p = cmdp->options + i;
@@ -351,8 +351,8 @@ static cmdp_option_st *find_option(int short_option, char *long_option, cmdp_com
 
 static cmdp_command_st *find_command(char *command_name, cmdp_command_st **commands, int count)
 {
-	int i, j;
-	int variant_count;
+    int i, j;
+    int variant_count;
     for (i = 0; i < count; i++)
     {
         cmdp_command_st *p = commands[i];
@@ -479,11 +479,11 @@ static int cmdp_parse_args(int argc, char **argv, cmdp_command_st *cmdp, cmdp_ct
     int arg_index      = 0;
     char *eval_arg      = NULL;
     char cur_ch         = '\0';
-	int ch_idx;
-	cmdp_option_st *find;
-	int next_parsed;
+    int ch_idx;
+    cmdp_option_st *find;
+    int next_parsed;
 
-	EVAL_CODE eval_code;
+    EVAL_CODE eval_code;
 
     cmdp_error_params_st error_params;
         error_params.err_stream = ctx->err_stream,
@@ -497,8 +497,8 @@ static int cmdp_parse_args(int argc, char **argv, cmdp_command_st *cmdp, cmdp_ct
         error_params.s    = _s;                                                                                        \
         ctx->fn_error_parse(&error_params);                                                                            \
     } while (0)
-	 parsed_options = 0;
-	 arg_index      = 0;
+     parsed_options = 0;
+     arg_index      = 0;
     for (; arg_index < argc; arg_index++)
     {
         char *cur_arg  = argv[arg_index];
@@ -650,8 +650,8 @@ static int cmdp_parse_args(int argc, char **argv, cmdp_command_st *cmdp, cmdp_ct
 
 static int cmdp_count_parsed_options(cmdp_command_st *cmdp)
 {
-	int count, i;
-	int options_count;
+    int count, i;
+    int options_count;
     if (cmdp->options == NULL)
     {
         return 0;
@@ -670,8 +670,8 @@ static int cmdp_count_parsed_options(cmdp_command_st *cmdp)
 }
 static cmdp_command_st *cmdp_find_parsed_cmd(cmdp_command_st *cmdp)
 {
-	int i;
-	int commands_count ;
+    int i;
+    int commands_count ;
     if (cmdp->sub_commands == NULL)
     {
         return NULL;
@@ -689,8 +689,8 @@ static cmdp_command_st *cmdp_find_parsed_cmd(cmdp_command_st *cmdp)
 }
 static int cmdp_run_callback(int argc, char **argv, cmdp_command_st *cmdp, cmdp_ctx *ctx, int recursive)
 {
-	bool show_help ;
-	cmdp_action_t code;
+    bool show_help ;
+    cmdp_action_t code;
     cmdp_command_st *sub_cmd = cmdp_find_parsed_cmd(cmdp);
     int parsed_options       = cmdp_count_parsed_options(cmdp);
     if (cmdp->fn_process == NULL && sub_cmd == NULL && parsed_options == 0 && argc == 0)
@@ -773,8 +773,8 @@ static void cmdp_setup_option_output(cmdp_option_st *option)
 }
 static void cmdp_setup(cmdp_command_st *cmdp, cmdp_command_st *parent)
 {
-	int i;
-	int options_count, commands_count;
+    int i;
+    int options_count, commands_count;
     cmdp->__parent    = parent;
     cmdp->__flag      = 0;
     cmdp->__call_name = NULL;
@@ -809,7 +809,7 @@ cmdp_flag_t cmdp_flag_always_hide()
 
 int cmdp_run(int argc, char **argv, cmdp_command_st *root_command, cmdp_ctx *ctx)
 {
-	int parsed;
+    int parsed;
     if (ctx)
     {
         cmdp_complete_context(ctx);
