@@ -39,8 +39,9 @@ xx.exe -i 0 -f result.txt -a ew -r 0x00  -v 0x00000012
 
 ## For Developers
 
-Build Env :
+Build Env (choose one):
 
 - `Visual C++ 6.0` with `ch36x_api_rw_helper.dsw`
 
+- `MinGW / MSYS2` with `Makefile`
 
