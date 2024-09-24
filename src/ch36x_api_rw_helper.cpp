@@ -10,6 +10,9 @@
 #include "ch36x_api_rw_helper.H"
 #pragma comment(lib,"CH367DLL.LIB")
 
+// 我们习惯使用的模式
+#define USING_LITTLE_ENDIAN
+
 void mShowDevVer(void) //获得驱动版本号
 {
     //ULONG ver = 0;
@@ -721,19 +724,32 @@ static cmdp_action_t callback_function(cmdp_process_param_st *params)
     if(strcmp(arg.action, "mw") ==0)
     {
         printf("Do mw : reg[%08x] write val[%08x]\n", addr, val);
+#ifdef USING_LITTLE_ENDIAN // 高字节在低地址 11 22 33 44 -> 44 33 22 11
+        buff[3] = getBits(val, 31, 24);
+        buff[2] = getBits(val, 23, 16);
+        buff[1] = getBits(val, 15,  8);
+        buff[0] = getBits(val,  7,  0);
+#else             // 高字节在高地址
         buff[0] = getBits(val, 31, 24);
         buff[1] = getBits(val, 23, 16);
         buff[2] = getBits(val, 15,  8);
         buff[3] = getBits(val,  7,  0);
+#endif
+        // CH36X 采用的是大端序通信
         ch36xMemWrite(CH36xMemModel_DWORD/*CH36xMemModel_BYTE*/,
             addr, len, buff);
 
     } else if(strcmp(arg.action, "mr") ==0)
     {
+        // CH36X 采用的是大端序通信
         ch36xMemRead(CH36xMemModel_DWORD/*CH36xMemModel_BYTE*/,
                     addr, len, buff);
+#ifdef USING_LITTLE_ENDIAN // 高字节在低地址
         val = word32From4Bytes(buff[3], buff[2], buff[1], buff[0]);
-        printf("Do mw : reg[%08x] read val[%08x]\n", addr, val);
+#else
+        val = word32From4Bytes(buff[0], buff[1], buff[2], buff[3]);
+#endif
+        printf("Do mr : reg[%08x] read val[%08x]\n", addr, val);
         printValToFile(arg.outputFile, val);
     }
 
