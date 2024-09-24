@@ -244,163 +244,124 @@ int ch36xMemConfig32BitRW(int enable)
 /*============================= MEM读写 ==============================*/
 enum CH36xMemModel
 {
-     CH36xMemModel_BYTE = 0;
-     CH36xMemModel_DWORD;
+     CH36xMemModel_BYTE = 0,
+     CH36xMemModel_DWORD,
 };
 
-
-void ch36xMemRead(enum CH36xMemModel MemModel)//MEM读操作
+BOOL mCheckWord(PVOID mWord, int dFlag) //检测地址是否能存储字或双字
 {
-    mVAR_TYPE mVarType;
-    UCHAR MemAddr[5],MemLen[5];
-    UCHAR mBuf[mMAX_BUFFER_LENGTH]="";
-    ULONG mLen=0,mAddr;
-    mAddr=GetDlgItemText(hDialog,IDC_EDITMEMADD,MemAddr,5);
-    if(!mCheckInput(MemAddr))
+    if(dFlag == 4)
     {
-        MessageBox(hDialog,"您输入的字符有误，请输入0~9,a~f,A~F之间的十六进制数!","提示",MB_OK|MB_ICONERROR);
-        return;
-    }
-    mVarType = mCharToVar(MemAddr,mAddr, 0);
-    mAddr = mVarType.sVar;//获得输入地址
-    mLen=GetDlgItemText(hDialog,IDC_EDITMEMLEN,MemLen,5);
-    if(!mCheckInput(MemLen))
-    {
-        MessageBox(hDialog,"您输入的字符有误，请输入0~9,a~f,A~F之间的十六进制数!","提示",MB_OK|MB_ICONERROR);
-        return;
-    }
-    mLen=mStrToBcd(MemLen);//获得输入长度
-    if(mLen>=0x8000)
-    {
-        MessageBox(hDialog,"请输入小于等于0x8000的长度!","提示",MB_OK|MB_ICONERROR);
-        printf("Len too long\n");
-        return;
-    }
-    //if(GetDlgItemText(hDialog,IDC_EDITMEMADD,MemAddr,5)==0||GetDlgItemText(hDialog,IDC_EDITMEMLEN,MemAddr,5)==0)
-    //{
-    //  MessageBox(hDialog,"请输入地址和数据长度","提示",MB_OK|MB_ICONSTOP);
-    //  return;
-    //}
-    if(mAddr+mLen>0x7FFF)
-    {
-        MessageBox(hDialog,"您输入的地址+长度>0x7FFF发生错误,请查阅CH367mAccessBlock的相关说明","提示",MB_OK|MB_ICONSTOP);
-        return;
-    }
-    if(MemModel == CH36xMemModel_BYTE)
-    {
-        if(!CH367mAccessBlock(mIndex,mFuncReadMemByte,&mMemAddr->mCH368MemPort[mAddr],mBuf,mLen))
+        if(((USHORT)mWord % 2)  == 0)
         {
-            MessageBox(hDialog,"MEM读取失败","提示",MB_OK|MB_ICONERROR);
-            return;
+            return TRUE;
         }
         else
         {
-            char buffer[mMAX_BUFFER_LENGTH*3];
-            ULONG i,j=0;
-            for(i=0;i<mLen;i++)
-            {
-                sprintf(&buffer[j],"%2x ",mBuf[i]);    //两位十六进制数加一个空格
-                if (mBuf[i]<16 )                      //一位十六进制字符前面加0
-                    buffer[j]=48;
-                if (buffer[j]>=97 && buffer[j]<=122) //小写字母转为大写字母
-                    buffer[j]=buffer[j]-32;
-                if (buffer[j+1]>=97 && buffer[j+1]<=122) //小写字母转为大写字母
-                    buffer[j+1]=buffer[j+1]-32;
-                j += 3;
-            }
-            buffer[j]='\0';
-            SetDlgItemText(hDialog,IDC_EDITMEMDATA,buffer);
+            return FALSE;
         }
     }
-    else
+    else if(dFlag == 8)
+    {
+        if(((USHORT)mWord % 4)  == 0)
+        {
+            return TRUE;
+        }
+        else
+        {
+            return FALSE;
+        }
+    }
+    return FALSE;
+}
+
+
+void ch36xMemRead(enum CH36xMemModel MemModel, ULONG addr,  ULONG len, unsigned char *recvBuff)//MEM读操作
+{
+    unsigned int i;
+    ULONG mLen=0,mAddr;
+    UCHAR mBuf[mMAX_BUFFER_LENGTH]="";
+
+    mAddr = addr;
+    mLen = len;
+
+    if(mLen >= 0x8000)
+    {
+        //MessageBox(hDialog,"请输入小于等于0x8000的长度!","提示",MB_OK|MB_ICONERROR);
+        printf("Len too long %x > 0x8000\n", mLen);
+        return;
+    }
+    if(mAddr + mLen > 0x7FFF)
+    {
+        //MessageBox(hDialog,"您输入的地址+长度>0x7FFF发生错误,请查阅CH367mAccessBlock的相关说明","提示",MB_OK|MB_ICONSTOP);
+        printf("MEM Read addr + len = %x > 0x7FFF, chcek CH367mAccessBlock", mAddr + mLen);
+        return;
+    }
+
+
+    if(MemModel == CH36xMemModel_BYTE)
+    {
+        printf("Read Byte\n");
+        if(!CH367mAccessBlock(mIndex,mFuncReadMemByte,&mMemAddr->mCH368MemPort[mAddr],mBuf,mLen))
+        {
+            //MessageBox(hDialog,"MEM读取失败","提示",MB_OK|MB_ICONERROR);
+            return;
+        }
+
+    }else
     {
         if(!mCheckWord((PVOID)mAddr, 8)||!mCheckWord((PVOID)mLen, 8))
         {
-            MessageBox(hDialog, "请输入能存储双字的起始地址且数据长度为4的倍数", "提示", MB_OK | MB_ICONSTOP);
+            //MessageBox(hDialog, "请输入能存储双字的起始地址且数据长度为4的倍数", "提示", MB_OK | MB_ICONSTOP);
             return;
         }
-        if(!CH367mAccessBlock(mIndex,mFuncReadMemDword,&mMemAddr->mCH368MemPort[mAddr],mBuf,mLen))
+        printf("Read 4-Byte\n");
+        if(!CH367mAccessBlock(mIndex, mFuncReadMemDword, &mMemAddr->mCH368MemPort[mAddr], mBuf, mLen))
         {
-            MessageBox(hDialog,"MEM读取失败","提示",MB_OK);
+            //MessageBox(hDialog,"MEM读取失败","提示",MB_OK|MB_ICONERROR);
             return;
         }
-        else
+    }
+
+    for(i = 0; i < mLen; i++)
+    {
+        if(recvBuff!=NULL)
         {
-            char buffer[mMAX_BUFFER_LENGTH*3];
-            ULONG i,j=0;
-            for(i=0;i<mLen;i++)
-            {
-                sprintf(&buffer[j],"%2x ",mBuf[i]);    //两位十六进制数加一个空格
-                if (mBuf[i]<16 )                      //一位十六进制字符前面加0
-                    buffer[j]=48;
-                if (buffer[j]>=97 && buffer[j]<=122) //小写字母转为大写字母
-                    buffer[j]=buffer[j]-32;
-                if (buffer[j+1]>=97 && buffer[j+1]<=122) //小写字母转为大写字母
-                    buffer[j+1]=buffer[j+1]-32;
-                j += 3;
-            }
-            buffer[j]='\0';
-            SetDlgItemText(hDialog,IDC_EDITMEMDATA,buffer);
+            recvBuff[i] = mBuf[i];
         }
+        //printf("%x\n", mBuf[i]);
     }
 }
-/*
-void mMemWrite(HWND hDialog,int MemModel)
+
+void ch36xMemWrite(enum CH36xMemModel MemModel, ULONG addr,  ULONG len, unsigned char *writeBuff)//MEM读操作
 {
-    mVAR_TYPE mVarType;
-    UCHAR MemAddr[5],MemLen[5];
-    UCHAR mBuf[mMAX_BUFFER_LENGTH*2]="";
-    UCHAR bufferFilter[mMAX_BUFFER_LENGTH*2]="";
+    unsigned int i;
+    ULONG mLen=0,mAddr;
     UCHAR buffer[mMAX_BUFFER_LENGTH]="";
-    UCHAR inputStr[mMAX_BUFFER_LENGTH*2]="";
-    ULONG mLen=0,mAddr,strLen,i,j=0;
-    mAddr=GetDlgItemText(hDialog,IDC_EDITMEMADD,MemAddr,5);
-    if(!mCheckInput(MemAddr))
+
+    mAddr = addr;
+    mLen = len;
+
+    if(mLen >= 0x8000)
     {
-        MessageBox(hDialog,"您输入的字符有误，请输入0~9,a~f,A~F之间的十六进制数!","提示",MB_OK|MB_ICONERROR);
+        //MessageBox(hDialog,"请输入小于等于0x8000的长度!","提示",MB_OK|MB_ICONERROR);
+        printf("Len too long %x > 0x8000\n", mLen);
         return;
     }
-    mVarType = mCharToVar(MemAddr,mAddr, 0);
-    mAddr = mVarType.sVar;//获取输入地址
-    mLen=GetDlgItemText(hDialog,IDC_EDITMEMLEN,MemLen,5);
-    if(!mCheckInput(MemLen))
+    if(mAddr + mLen > 0x7FFF)
     {
-        MessageBox(hDialog,"您输入的字符有误，请输入0~9,a~f,A~F之间的十六进制数!","提示",MB_OK|MB_ICONERROR);
+        //MessageBox(hDialog,"您输入的地址+长度>0x7FFF发生错误,请查阅CH367mAccessBlock的相关说明","提示",MB_OK|MB_ICONSTOP);
+        printf("MEM Read addr + len = %x > 0x7FFF, chcek CH367mAccessBlock", mAddr + mLen);
         return;
     }
-    mLen=mStrToBcd(MemLen);//获取输入长度
-    if(mLen>=0x8000)
-    {
-        MessageBox(hDialog,"请输入小于等于0x8000的长度!","提示",MB_OK|MB_ICONERROR);
-        return;
-    }
-    strLen=GetDlgItemText(hDialog,IDC_EDITMEMDATA,inputStr,mMAX_BUFFER_LENGTH);//获取输入数据
-    for(i=0;i<strLen;i++)
-    {
-        if(inputStr[i]!=' ')
-            bufferFilter[j++]=inputStr[i];
-    }
-    if(mAddr+mLen>0x7FFF)
-    {
-        MessageBox(hDialog,"您输入的地址+长度>0x7FFF发生错误,请查阅CH367mAccessBlock的相关说明","提示",MB_OK|MB_ICONERROR);
-        return;
-    }
-    if(GetDlgItemText(hDialog,IDC_EDITMEMADD,MemAddr,5)==0||GetDlgItemText(hDialog,IDC_EDITMEMLEN,MemLen,5)==0||GetDlgItemText(hDialog,IDC_EDITMEMDATA,inputStr,mMAX_BUFFER_LENGTH)==0)
-    {
-        MessageBox(hDialog,"请输入地址,数据长度和写入数据内容","提示",MB_OK|MB_ICONSTOP);
-        return;
-    }
-    if(mLen>j/2)//在输入长度和数据长度中取较小的值
-    {
-        mLen=j/2;
-    }
-    memcpy(mBuf,bufferFilter,mLen*2);
-    memcpy(buffer,mStrtoVal(mBuf,mLen*2),mLen);
-    if(MemModel==0)//以字节的方式读写MEM
+
+    //memcpy(mBuf,bufferFilter,mLen*2);
+    memcpy(buffer, writeBuff,mLen);
+    if(MemModel==0) //以字节的方式读写MEM
     {
         if(!CH367mAccessBlock(mIndex,mFuncWriteMemByte,&mMemAddr->mCH368MemPort[mAddr],buffer,mLen))
         {
-            MessageBox(NULL,"写失败","提示",MB_OK|MB_ICONERROR);
+            //MessageBox(NULL,"写失败","提示",MB_OK|MB_ICONERROR);
             return;
         }
         else
@@ -412,29 +373,61 @@ void mMemWrite(HWND hDialog,int MemModel)
     {
         if(!mCheckWord((PVOID)mAddr, 8))
         {
-            MessageBox(hDialog, "请输入能存储双字的起始地址且数据长度为4的倍数", "提示", MB_OK | MB_ICONSTOP);
+            //MessageBox(hDialog, "请输入能存储双字的起始地址且数据长度为4的倍数", "提示", MB_OK | MB_ICONSTOP);
             return;
         }
         if(!CH367mAccessBlock(mIndex,mFuncWriteMemDword,&mMemAddr->mCH368MemPort[mAddr],buffer,mLen))
         {
-            MessageBox(NULL,"写失败","提示",MB_OK|MB_ICONERROR);
+            //MessageBox(NULL,"写失败","提示",MB_OK|MB_ICONERROR);
             return;
         }
         else
         {
-            MessageBox(NULL,"写成功","提示",MB_OK);
+            //MessageBox(NULL,"写成功","提示",MB_OK);
         }
     }
 }
-*/
+
 int main(int argc, char *argv[])
 {
     int index = 0;
+    unsigned int i;
+    ULONG addr, len;
+    unsigned char buff[256];
     ch36xOpenDevice(index);
 
     ch36xMemConfig32BitRW(true);
 
+    Sleep(100);
+
+    addr = 0x4;
+    len = 4;
+    ch36xMemRead(CH36xMemModel_DWORD/*CH36xMemModel_BYTE*/,
+                addr, len, buff);
+    for(i = 0; i < len; i++)
+    {
+
+        printf("%x\n", buff[i]);
+    }
+
+    for(i = 0; i < len; i++)
+    {
+
+        buff[i] = 0xff;
+    }
+    ch36xMemWrite(CH36xMemModel_DWORD/*CH36xMemModel_BYTE*/,
+                addr, len, buff);
+
+    Sleep(100);
+    ch36xMemRead(CH36xMemModel_DWORD/*CH36xMemModel_BYTE*/,
+                addr, len, buff);
+    for(i = 0; i < len; i++)
+    {
+
+        printf("%x\n", buff[i]);
+    }
     ch36xCloseDevice(index);
+
 
     return 0;
 }
