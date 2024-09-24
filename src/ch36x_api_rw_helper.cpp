@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <string.h>
-#include <iostream.h>
 #include <string.h>
 
 #include "CH367DLL.h"
@@ -246,7 +245,7 @@ enum CH36xMemModel
      CH36xMemModel_DWORD,
 };
 
-BOOL mCheckWord(PVOID mWord, int dFlag) //检测地址是否能存储字或双字
+BOOL mCheckWord(USHORT mWord, int dFlag) //检测地址是否能存储字或双字
 {
     if(dFlag == 4)
     {
@@ -308,7 +307,7 @@ void ch36xMemRead(enum CH36xMemModel MemModel, ULONG addr,  ULONG len, unsigned 
 
     }else
     {
-        if(!mCheckWord((PVOID)mAddr, 8)||!mCheckWord((PVOID)mLen, 8))
+        if(!mCheckWord(mAddr, 8)||!mCheckWord(mLen, 8))
         {
             //MessageBox(hDialog, "请输入能存储双字的起始地址且数据长度为4的倍数", "提示", MB_OK | MB_ICONSTOP);
             return;
@@ -369,7 +368,7 @@ void ch36xMemWrite(enum CH36xMemModel MemModel, ULONG addr,  ULONG len, unsigned
     }
     else//以双字的方式读写MEM
     {
-        if(!mCheckWord((PVOID)mAddr, 8))
+        if(!mCheckWord(mAddr, 8))
         {
             //MessageBox(hDialog, "请输入能存储双字的起始地址且数据长度为4的倍数", "提示", MB_OK | MB_ICONSTOP);
             return;

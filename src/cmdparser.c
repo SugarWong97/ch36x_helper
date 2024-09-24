@@ -12,15 +12,16 @@ http://www.apache.org/licenses/LICENSE-2.0
 #include <stdlib.h>
 #include <string.h>
 
+
 // isatty
-#if defined(__GLIBC__)
-#include <unistd.h>
-#endif
 #if defined(_MSC_VER)
 #include <io.h>
 #define isatty _isatty
 #define fileno _fileno
+#else
+#include <unistd.h>
 #endif
+
 // ============================================================================
 // utils
 // ============================================================================
